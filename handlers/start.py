@@ -16,7 +16,22 @@ def load_users():
 def save_users(users):
     with open(USERS_FILE, "w") as f:
         json.dump(users, f)
+        # Функция для сохранения пользователей
+def save_users(users):
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f)
+
+# Функция для добавления пользователя
+def add_user(user_id):
+    users = load_users()
+    if user_id not in users:
+        users.append(user_id)
+        save_users(users)
+
 async def start(update, context):
+    user_id = update.message.from_user.id
+    add_user(user_id)
+    
     keyboard = [
         ["🕔 Расписание отделов"],
         ["🔬 Наука", "🎓 Дипломы и диссертации"],
