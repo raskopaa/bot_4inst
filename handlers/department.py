@@ -7,6 +7,8 @@ from handlers.science import ask_science_question, science_buttons, send_sci_sch
 from handlers.diploma import  ask_diploma_question, dip_buttons, send_dip_schedule
 from handlers.stipendia import ask_stip_question, stip_buttons, send_stip_schedule
 from handlers.champion import  ask_champ_question, champ_buttons, send_champ_schedule
+from handlers.napr import  ask_napr_question, napr_buttons, send_napr_schedule
+from handlers.abi import ask_abi_question, abi_buttons, send_abi_schedule
 logger = logging.getLogger(__name__)
 
 ADMINS = {
@@ -22,71 +24,62 @@ SELECT_DEPARTMENT, ASK_QUESTION = range(2)
 
 async def ask_department_question(update, context):
     context.user_data.clear()
-
-    # Исключаем "Деканат" из списка кафедр
-    departments = [d for d in ADMINS.keys() if d != "⭐️ Деканат ⭐️"]
-
-    keyboard = [["⭐️ Деканат ⭐️"]]  # Добавляем "Деканат" первой строкой
-    keyboard += [departments[i:i + 2] for i in range(0, len(departments), 2)]  # Группировка кафедр по 2 в строке
-    keyboard.append(["⬅️ Главное меню"])  # Добавляем кнопку в конце
-
+    departments = [d for d in ADMINS.keys()]
+    keyboard = [departments[i:i + 2] for i in range(0, len(departments), 2)]
+    keyboard.append(["⬅️ Главное меню"])
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=False)
-    await update.message.reply_text("Выберите куда хотите направить вопрос?", reply_markup=reply_markup)
-
+    await update.message.reply_text("Выберите интересующую кафедру:", reply_markup=reply_markup)
     return SELECT_DEPARTMENT
+DEPARTMENT_INFO = {
+    "🖥️ Кафедра 41": "Кафедра 41\n📞 Телефон: (812) 494-70-41\n📧 Email:  dept41@guap.ru\n👤 Зав. кафедрой: Коржавин Георгий Анатольевич",
+    "🌐 Кафедра 42": "Кафедра 42\n📞 Телефон: (812) 494-70-53\n📧 Email: kaf42@guap.ru\n👤 Зав. кафедрой: Мичурин Сергей Владимирович",
+    "👨‍💻 Кафедра 43": "Кафедра 43\n📞 Телефон: (812) 494-70-43\n📧 Email:  k43@guap.ru\n👤 Зав. кафедрой: Охтилев Михаил Юрьевич",
+    "📊 Кафедра 44": "Кафедра 44\n📞 Телефон: (812) 494-70-44\n📧 Email: kaf44@guap.ru\n👤 Зав. кафедрой: Сергеев Михаил Борисович",
+    "⭐️ Деканат ⭐️": "⭐️ Деканат ⭐️\n📞 Телефон: (812) 494-70-40; (812) 312-24-14\n📧 Email: dek4@guap.ru\n👤 Директор Института: Татарникова Татьяна Михайловна\n"
+                     "📞 Телефон деканата младших курсов: (812) 708-39-43\n📧 Email деканата младших курсов: dek4gast@guap.ru"
+}
+
 async def select_department(update, context):
     text = update.message.text
+
+
     if text == "⬅️ Главное меню":
-        #await update.message.reply_text("Возврат в главное меню.")
         context.user_data.clear()
-        await start(update, context)  # Явный вызов функции start
+        await show_main_menu(update, context)
         return ConversationHandler.END
 
     if text not in ADMINS:
-        # Если пользователь нажал "🕔 Расписание отделов"
-        if text == "🕔 Расписание отделов":
-            await ask_department_question(update, context)  # Перенаправляем на функцию из rasp.py
-            return ConversationHandler.END  # Завершаем текущий ConversationHandler
-        await update.message.reply_text("Не понимаю,куда хотите отправить вопрос.😢 Попробуйте еще раз.")
+        await update.message.reply_text("Не понимаю, куда хотите отправить вопрос. 😢 Попробуйте еще раз.")
         return SELECT_DEPARTMENT
 
-    context.user_data["department"] = text
-    keyboard = [["⬅️ Главное меню"]]  # Сокращённый текст кнопки
-    reply_markup = ReplyKeyboardMarkup(
-        keyboard,
-        one_time_keyboard=False,
-        resize_keyboard=True  # Уменьшаем размер клавиатуры
-    )
-    await update.message.reply_text(f"Вы выбрали {text}. Напишите вопрос:", reply_markup=reply_markup)
-    return ASK_QUESTION
+    # Показываем информацию о выбранной кафедре
+    info = DEPARTMENT_INFO.get(text, "Информация о кафедре не найдена.")
+    keyboard = [["⬅️ Главное меню"]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=False, resize_keyboard=True)
+    await update.message.reply_text(info, reply_markup=reply_markup)
 
-async def handle_question(update, context):
-    text = update.message.text
-    if text == "⬅️ Главное меню":
-        #await update.message.reply_text("Возврат в главное меню.")
-        context.user_data.clear()
-        await start(update, context)
-        return ConversationHandler.END
+    return SELECT_DEPARTMENT
 
-    department = context.user_data.get("department")
-    admin_id = ADMINS.get(department)
-    if not admin_id:
-        await update.message.reply_text("Ошибка: Не понимаю,куда хотите отправить вопрос😢")
-        return ConversationHandler.END
+async def show_main_menu(update, context):
+    """Отображаем главное меню без выбора роли."""
+    keyboard = [
+        ["🕔 Расписание отделов"],
+        ["🔬 Наука", "🎓 Дипломы и диссертации"],
+        ["💵 Стипендии и гранты", "🏆 Чемпионаты и стажировки"],
+        ["❓ Задать вопрос"]
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=False, resize_keyboard=True)
+    await update.message.reply_text("Главное меню", reply_markup=reply_markup)
 
-    user = update.message.from_user
-    context.user_data["user_id"] = user.id  # Сохраняем user_id
-    context.user_data["username"] = user.username  # Сохраняем username
-
-    # Отправляем вопрос администратору
-    await context.bot.send_message(
-        chat_id=admin_id,
-        text=f"Вопрос от @{user.username} ({user.id}) для {department}:\n\n{text}"
-    )
-    await update.message.reply_text("✅ Вопрос отправлен!")
-    context.user_data.clear()
-    await start(update, context)
-    return ConversationHandler.END
+async def show_ABI_menu(update, context):
+        """Отображаем главное меню без выбора роли."""
+        keyboard = [
+            ["📚 Направления обучения", "📝 Общежития"],
+            ["📅 Вступительные экзамены", "☎️ Контакты для связи"],
+            ["🧑‍💻 Узнай свою ИТ-специализацию"]
+        ]
+        reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=False, resize_keyboard=True)
+        await update.message.reply_text("Главное меню", reply_markup=reply_markup)
 
 # Возвращает ConversationHandler для раздела
 def get_department_handlers():
@@ -106,7 +99,11 @@ async def handle_admin_reply(update, context):
 
     # Если текст "Главное меню", перенаправляем в главное меню
     if text == "⬅️ Главное меню":
-        await start(update, context)  # Вызов функции start для перехода в главное меню
+        await show_main_menu(update, context)  # Вызов функции start для перехода в главное меню
+        return
+
+    if text == "⬅️ Меню":
+        await show_ABI_menu(update, context)  # Вызов функции start для перехода в главное меню
         return
 
 
@@ -128,6 +125,9 @@ async def handle_admin_reply(update, context):
     if text == "🏆 Чемпионаты и стажировки":
         await ask_champ_question(update, context)  # Перенаправляем на функцию для запроса отдела
         return
+    if text == "📚 Направления обучения":
+        await ask_napr_question(update, context)  # Перенаправляем на функцию для запроса отдела
+        return
     if text in champ_buttons:
         # В зависимости от выбранного отдела, отправляем расписание
         await send_champ_schedule(update, context)
@@ -135,7 +135,9 @@ async def handle_admin_reply(update, context):
     if text in stip_buttons:
         # В зависимости от выбранного отдела, отправляем расписание
         await send_stip_schedule(update, context)
-
+    if text in abi_buttons:
+        # В зависимости от выбранного отдела, отправляем расписание
+        await send_abi_schedule(update, context)
     if text in rasp_buttons:
         # В зависимости от выбранного отдела, отправляем расписание
         await send_rasp_schedule(update, context)
@@ -147,6 +149,9 @@ async def handle_admin_reply(update, context):
     if text in science_buttons:
         # В зависимости от выбранного отдела, отправляем расписание
         await send_sci_schedule(update, context)
+        return
+    if text in napr_buttons:
+        await send_napr_schedule(update, context)
         return
 
 
@@ -175,3 +180,16 @@ def get_admin_reply_handler():
     return MessageHandler(filters.TEXT & ~filters.COMMAND, handle_admin_reply)
 
 
+def get_department_handlers():
+    return ConversationHandler(
+        entry_points=[MessageHandler(filters.Regex("^❓ Задать вопрос$"), ask_department_question)],
+        states={
+            SELECT_DEPARTMENT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, select_department)
+            ],
+        },
+        fallbacks=[
+            MessageHandler(filters.Regex("^⬅️ Главное меню$"), lambda update, context: show_main_menu(update, context)),
+        ],
+        allow_reentry=True
+    )
