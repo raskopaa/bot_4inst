@@ -41,7 +41,7 @@ async def start(update: Update, context: CallbackContext):
     """Запросить у пользователя, кто он: студент или абитуриент"""
     logger.info(f"Пользователь {update.message.from_user.id} запустил бота.")
 
-    keyboard = [["Студент", "Абитуриент"]]
+    keyboard = [["Абитуриент" ,"Студент"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
 
     await update.message.reply_text(
@@ -58,7 +58,7 @@ async def choose_role(update: Update, context: CallbackContext):
 
     logger.info(f"Пользователь {user_id} выбрал: {role}")
 
-    if role not in ["студент", "абитуриент"]:
+    if role not in ["абитуриент","студент"]:
         await update.message.reply_text("Пожалуйста, выберите 'Студент' или 'Абитуриент'.")
         return CHOOSING_ROLE  # Остаемся в этом состоянии
 
